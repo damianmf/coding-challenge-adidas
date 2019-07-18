@@ -1,0 +1,87 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: mysql-volume
+  claim: mysql-volume
+  annotations:
+    volume.beta.kubernetes.io/storage-class: manual
+spec:
+  # here we are defining a volume available to the cluster
+  accessModes:
+    - ReadWriteOnce
+  capacity:
+    storage: 2Gi
+  hostPath:
+    path: /data/mysql/
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: mysql-volume-claim
+spec:
+  storageClassName: manual
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql
+spec:
+  selector:
+    # determines where the traffic should go
+    # these labels match what is in our mysql-deployment.yml
+    app: mysql
+  ports:
+    - name: mysql
+      port: 3306
+      targetPort: 3306
+      nodePort: 32002
+  type: NodePort
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: mysql
+spec:
+  strategy:
+    # this prevents rolling updates since our volume
+    # can only be attached to one instance at a time
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: mysql
+    spec:
+      containers:
+        - name: mysql
+          image: mysql:5.6
+          imagePullPolicy: Always
+          resources:
+            limits:
+              cpu: 100m
+              memory: 512Mi
+          env:
+            - name: spring.profiles.active
+              value: "testing"
+            - name: spring.datasource.url
+              value: "jdbc:mysql://192.168.99.107:32002/my_db"
+            - name: MYSQL_ROOT_PASSWORD
+              value: root
+            - name: MYSQL_DATABASE
+              value: my_db
+            - name: MYSQL_USER
+              value: root
+          ports:
+            - name: mysql
+              containerPort: 3306
+          volumeMounts:
+            - name: mysql-persistent-storage
+              mountPath: /var/lib/mysql
+      volumes:
+        - name: mysql-persistent-storage
+          persistentVolumeClaim:
+            claimName: mysql-volume-claim

@@ -1,0 +1,49 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: availability-service
+spec:
+  selector:
+    app: availability-service
+  ports:
+    - protocol: TCP
+      port: 4444
+      targetPort: 4444
+  type: NodePort
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: availability-service
+spec:
+  selector:
+    matchLabels:
+      app: availability-service
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: availability-service
+    spec:
+      containers:
+        - name: availability-service
+          hostNetwork: true
+          image: availability-service:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 4444
+
+
+#apiVersion: v1
+#kind: Service
+#metadata:
+#  name: config-service
+#spec:
+#  type: NodePort
+#  ports:
+#    - nodePort: 8088
+#      port: 8088
+#      protocol: TCP
+#      targetPort: 8088
+#  selector:
+#    app: config-service

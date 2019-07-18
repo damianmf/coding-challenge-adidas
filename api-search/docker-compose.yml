@@ -1,0 +1,11 @@
+version: '2'
+services:
+  search-service:
+    container_name: search-service
+    command: ["./wait-for-it.sh", "availability-service", "python", "app.py"]
+    build: .
+    ports:
+      - "4000:4000"
+    expose:
+      - 4000
+    restart: on-failure
